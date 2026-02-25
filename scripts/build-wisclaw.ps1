@@ -20,10 +20,10 @@ $VenvDir = Join-Path $RepoRoot ".venv-build"
 $SpecFile = Join-Path $BridgeDir "wisclaw.spec"
 
 # Detect architecture for output naming
-$Arch = switch ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) {
-    "X64"   { "x64" }
-    "X86"   { "x86" }
-    "Arm64" { "arm64" }
+$Arch = switch ($env:PROCESSOR_ARCHITECTURE) {
+    "AMD64" { "x64" }
+    "x86"   { "x86" }
+    "ARM64" { "arm64" }
     default { "unknown" }
 }
 

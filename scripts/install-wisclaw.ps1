@@ -24,12 +24,12 @@ $InstallDir = Join-Path $env:USERPROFILE ".local\bin"
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 function Get-Architecture {
-    $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-    switch ($arch) {
-        "X64"  { return "x64" }
-        "Arm64"{ return "arm64" }
+    switch ($env:PROCESSOR_ARCHITECTURE) {
+        "AMD64" { return "x64" }
+        "x86"   { return "x64" }
+        "ARM64" { return "arm64" }
         default {
-            Write-Host "Unsupported architecture: $arch" -ForegroundColor Red
+            Write-Host "Unsupported architecture: $env:PROCESSOR_ARCHITECTURE" -ForegroundColor Red
             exit 1
         }
     }
