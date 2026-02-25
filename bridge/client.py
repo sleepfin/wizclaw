@@ -3,7 +3,9 @@
 import asyncio
 import json
 import logging
+import ssl
 
+import certifi
 import websockets
 
 from bridge import __version__
@@ -51,7 +53,11 @@ class BridgeClient:
         url = f"{self.cloud_url}?api_key={self.api_key}"
         logger.info("Connecting to %s", self.cloud_url)
 
-        async with websockets.connect(url, ping_interval=30, ping_timeout=10) as ws:
+        ssl_ctx = None
+        if self.cloud_url.startswith("wss://"):
+            ssl_ctx = ssl.create_default_context(cafile=certifi.where())
+
+        async with websockets.connect(url, ping_interval=30, ping_timeout=10, ssl=ssl_ctx) as ws:
             logger.info("Connected to cloud")
             await self._send_status(ws)
 

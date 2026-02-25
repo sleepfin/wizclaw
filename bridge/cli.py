@@ -12,8 +12,10 @@ import argparse
 import asyncio
 import logging
 import platform
+import ssl
 import sys
 
+import certifi
 import httpx
 import websockets
 
@@ -50,23 +52,32 @@ def _setup_logging():
 # Validation helpers
 # ---------------------------------------------------------------------------
 
+def _make_ssl_context() -> ssl.SSLContext:
+    """Create an SSL context using certifi CA bundle.
+
+    Needed for PyInstaller builds where the system CA store may be absent.
+    """
+    return ssl.create_default_context(cafile=certifi.where())
+
+
 async def _check_ws_reachable(url: str) -> tuple[bool, str]:
     """Try a WebSocket handshake to verify the URL is reachable.
 
     The server will likely close with 4001 (no api_key), but a successful
     TCP + WS handshake proves the address is valid and reachable.
     """
+    ssl_ctx = _make_ssl_context() if url.startswith("wss://") else None
     try:
-        async with websockets.connect(url, open_timeout=5):
+        async with websockets.connect(url, open_timeout=5, ssl=ssl_ctx):
             return True, ""
     except websockets.exceptions.ConnectionClosedError:
         # Server closed after handshake (e.g. 4001) — address is reachable
         return True, ""
-    except websockets.exceptions.InvalidStatus as e:
+    except websockets.exceptions.InvalidStatus:
         # Server rejected upgrade but TCP is reachable — treat as reachable
         return True, ""
     except (ConnectionRefusedError, OSError) as e:
-        return False, f"Cannot connect to {url}: {e}"
+        return False, f"Cannot connect to {url}: [{type(e).__name__}] {e}"
     except asyncio.TimeoutError:
         return False, f"Connection timed out for {url}"
     except Exception as e:
@@ -80,8 +91,9 @@ async def _check_api_key(cloud_url: str, api_key: str) -> tuple[bool, str]:
     If the connection stays open, the key is valid.
     """
     url = f"{cloud_url}?api_key={api_key}"
+    ssl_ctx = _make_ssl_context() if cloud_url.startswith("wss://") else None
     try:
-        async with websockets.connect(url, open_timeout=5) as ws:
+        async with websockets.connect(url, open_timeout=5, ssl=ssl_ctx) as ws:
             # Connection stayed open — key is valid
             await ws.close()
             return True, ""
@@ -95,7 +107,7 @@ async def _check_api_key(cloud_url: str, api_key: str) -> tuple[bool, str]:
             return False, "API key is invalid or revoked"
         return False, f"Server rejected connection (HTTP {status})"
     except (ConnectionRefusedError, OSError) as e:
-        return False, f"Cannot connect to server: {e}"
+        return False, f"Cannot connect to server: [{type(e).__name__}] {e}"
     except asyncio.TimeoutError:
         return False, "Connection timed out"
     except Exception as e:
