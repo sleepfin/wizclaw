@@ -6,12 +6,16 @@ Single-command experience:
     wisclaw version   — print version and exit
 """
 
+from __future__ import annotations
+
 import argparse
 import asyncio
-import getpass
 import logging
 import platform
 import sys
+
+import httpx
+import websockets
 
 from bridge import __version__
 from bridge.config import load_config, save_config, get_config_path, _DEFAULTS
@@ -34,21 +38,116 @@ def _setup_windows():
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
-def _getpass_safe(prompt: str) -> str:
-    """getpass with fallback for terminals where it fails (e.g. Git Bash mintty)."""
-    try:
-        return getpass.getpass(prompt)
-    except (OSError, EOFError):
-        print("WARNING: Unable to hide input. Your input will be visible.")
-        return input(prompt)
-
-
 def _setup_logging():
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
+
+# ---------------------------------------------------------------------------
+# Validation helpers
+# ---------------------------------------------------------------------------
+
+async def _check_ws_reachable(url: str) -> tuple[bool, str]:
+    """Try a WebSocket handshake to verify the URL is reachable.
+
+    The server will likely close with 4001 (no api_key), but a successful
+    TCP + WS handshake proves the address is valid and reachable.
+    """
+    try:
+        async with websockets.connect(url, open_timeout=5):
+            return True, ""
+    except websockets.exceptions.ConnectionClosedError:
+        # Server closed after handshake (e.g. 4001) — address is reachable
+        return True, ""
+    except (ConnectionRefusedError, OSError) as e:
+        return False, f"Cannot connect to {url}: {e}"
+    except asyncio.TimeoutError:
+        return False, f"Connection timed out for {url}"
+    except Exception as e:
+        return False, f"Cannot connect to {url}: {e}"
+
+
+async def _check_api_key(cloud_url: str, api_key: str) -> tuple[bool, str]:
+    """Verify the API key by connecting with it to the cloud WebSocket.
+
+    If the server closes with code 4001, the key is invalid/revoked.
+    If the connection stays open, the key is valid.
+    """
+    url = f"{cloud_url}?api_key={api_key}"
+    try:
+        async with websockets.connect(url, open_timeout=5) as ws:
+            # Connection stayed open — key is valid
+            await ws.close()
+            return True, ""
+    except websockets.exceptions.ConnectionClosedError as e:
+        if e.code == 4001:
+            return False, "API key is invalid or revoked"
+        return False, f"Connection closed unexpectedly (code={e.code}): {e.reason}"
+    except (ConnectionRefusedError, OSError) as e:
+        return False, f"Cannot connect to server: {e}"
+    except asyncio.TimeoutError:
+        return False, "Connection timed out"
+    except Exception as e:
+        return False, f"Connection failed: {e}"
+
+
+def _validate_cloud_url(url: str) -> tuple[bool, str]:
+    """Validate cloud WebSocket URL format and reachability."""
+    if not url.startswith(("ws://", "wss://")):
+        return False, "URL must start with ws:// or wss://"
+    return asyncio.run(_check_ws_reachable(url))
+
+
+def _validate_api_key(api_key: str, cloud_url: str) -> tuple[bool, str]:
+    """Validate API key format and verify against the cloud server."""
+    if not api_key.startswith("evo_"):
+        return False, "API key must start with 'evo_'"
+    return asyncio.run(_check_api_key(cloud_url, api_key))
+
+
+def _validate_openclaw_url(url: str) -> tuple[bool, str]:
+    """Validate OpenClaw URL format and check health endpoint."""
+    if not url.startswith(("http://", "https://")):
+        return False, "URL must start with http:// or https://"
+    try:
+        resp = httpx.get(f"{url.rstrip('/')}/v1/models", timeout=5.0)
+        if resp.status_code == 200:
+            return True, ""
+        return False, f"OpenClaw returned HTTP {resp.status_code}"
+    except httpx.ConnectError:
+        return False, f"Cannot connect to OpenClaw at {url}"
+    except httpx.TimeoutException:
+        return False, f"Connection timed out for {url}"
+    except Exception as e:
+        return False, f"Health check failed: {e}"
+
+
+def _prompt_with_validation(
+    prompt: str,
+    default: str,
+    validate_fn,
+) -> str:
+    """Prompt the user in a retry loop until validation passes.
+
+    validate_fn receives the value and returns (ok, error_message).
+    Ctrl+C or EOF exits the process cleanly.
+    """
+    while True:
+        try:
+            value = input(prompt).strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\nConfiguration cancelled.")
+            sys.exit(1)
+        if not value:
+            value = default
+        ok, err = validate_fn(value)
+        if ok:
+            return value
+        print(f"  ERROR: {err}")
+        print("  Please try again.\n")
 
 
 # ---------------------------------------------------------------------------
@@ -66,37 +165,68 @@ def _run_config_wizard(force: bool = False) -> dict:
 
     print("=== wisclaw setup ===\n")
 
-    cloud_url = input(
-        f"Cloud WebSocket URL [{cfg.get('cloud_url', _DEFAULTS['cloud_url'])}]: "
-    ).strip()
-    if cloud_url:
-        if not cloud_url.startswith("wss://"):
-            print("WARNING: Cloud URL should use wss:// for encrypted connections.")
-        cfg = {**cfg, "cloud_url": cloud_url}
+    # --- Cloud WebSocket URL (format + reachability) ---
+    default_cloud = cfg.get("cloud_url", _DEFAULTS["cloud_url"])
+    cloud_url = _prompt_with_validation(
+        prompt=f"Cloud WebSocket URL [{default_cloud}]: ",
+        default=default_cloud,
+        validate_fn=_validate_cloud_url,
+    )
+    cfg = {**cfg, "cloud_url": cloud_url}
 
-    api_key = _getpass_safe("API Key (evo_...): ").strip()
-    if api_key:
-        if not api_key.startswith("evo_"):
-            print("WARNING: API key does not start with 'evo_'. Please verify.")
-        cfg = {**cfg, "api_key": api_key}
+    # --- API Key (format + server verification) ---
+    api_key = _prompt_with_validation(
+        prompt="API Key (evo_...): ",
+        default=cfg.get("api_key", _DEFAULTS["api_key"]),
+        validate_fn=lambda key: _validate_api_key(key, cloud_url),
+    )
+    cfg = {**cfg, "api_key": api_key}
 
-    openclaw_url = input(
-        f"OpenClaw URL [{cfg.get('openclaw_url', _DEFAULTS['openclaw_url'])}]: "
-    ).strip()
-    if openclaw_url:
-        cfg = {**cfg, "openclaw_url": openclaw_url}
+    # --- OpenClaw URL (format + health check, with skip option) ---
+    default_openclaw = cfg.get("openclaw_url", _DEFAULTS["openclaw_url"])
+    print("  (Enter 'skip' to skip connectivity check if OpenClaw is not running yet)")
+    while True:
+        try:
+            raw = input(f"OpenClaw URL [{default_openclaw}]: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\nConfiguration cancelled.")
+            sys.exit(1)
+        if not raw:
+            raw = default_openclaw
+        if raw.lower() == "skip":
+            print(f"  Skipping connectivity check. Using: {cfg.get('openclaw_url', default_openclaw)}")
+            break
+        ok, err = _validate_openclaw_url(raw)
+        if ok:
+            cfg = {**cfg, "openclaw_url": raw}
+            break
+        print(f"  ERROR: {err}")
+        print("  Enter a valid URL or 'skip' to skip.\n")
 
+    # --- OpenClaw Token (optional, no connectivity check) ---
     token_display = "****" if cfg.get("openclaw_token") else "none"
-    openclaw_token = _getpass_safe(
-        f"OpenClaw Token (empty for none) [current: {token_display}]: "
-    ).strip()
-    cfg = {**cfg, "openclaw_token": openclaw_token}
+    try:
+        openclaw_token = input(
+            f"OpenClaw Token (empty to keep current, 'clear' to remove) [current: {token_display}]: "
+        ).strip()
+    except (KeyboardInterrupt, EOFError):
+        print("\nConfiguration cancelled.")
+        sys.exit(1)
+    if openclaw_token.lower() == "clear":
+        cfg = {**cfg, "openclaw_token": ""}
+    elif openclaw_token:
+        cfg = {**cfg, "openclaw_token": openclaw_token}
 
-    agent_id = input(
-        f"OpenClaw Agent ID [{cfg.get('openclaw_agent_id', _DEFAULTS['openclaw_agent_id'])}]: "
-    ).strip()
-    if agent_id:
-        cfg = {**cfg, "openclaw_agent_id": agent_id}
+    # --- OpenClaw Agent ID (has default, no connectivity check) ---
+    default_agent = cfg.get("openclaw_agent_id", _DEFAULTS["openclaw_agent_id"])
+    try:
+        agent_id = input(f"OpenClaw Agent ID [{default_agent}]: ").strip()
+    except (KeyboardInterrupt, EOFError):
+        print("\nConfiguration cancelled.")
+        sys.exit(1)
+    if not agent_id:
+        agent_id = default_agent
+    cfg = {**cfg, "openclaw_agent_id": agent_id}
 
     save_config(cfg)
     print(f"\nConfig saved to {get_config_path()}")
