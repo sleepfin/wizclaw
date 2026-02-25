@@ -25,7 +25,7 @@ CONFIG_DIR = _get_config_dir()
 CONFIG_FILE = CONFIG_DIR / "config.yaml"
 
 _DEFAULTS = {
-    "cloud_url": "ws://stackme.cloud:8088/ws/bridge",
+    "cloud_url": "ws://stackme.cloud/ws/bridge",
     "api_key": "",
     "openclaw_url": "http://localhost:18789",
     "openclaw_token": "",
