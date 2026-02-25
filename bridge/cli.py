@@ -62,12 +62,15 @@ async def _check_ws_reachable(url: str) -> tuple[bool, str]:
     except websockets.exceptions.ConnectionClosedError:
         # Server closed after handshake (e.g. 4001) — address is reachable
         return True, ""
+    except websockets.exceptions.InvalidStatus as e:
+        # Server rejected upgrade but TCP is reachable — treat as reachable
+        return True, ""
     except (ConnectionRefusedError, OSError) as e:
         return False, f"Cannot connect to {url}: {e}"
     except asyncio.TimeoutError:
         return False, f"Connection timed out for {url}"
     except Exception as e:
-        return False, f"Cannot connect to {url}: {e}"
+        return False, f"Cannot connect to {url}: [{type(e).__name__}] {e}"
 
 
 async def _check_api_key(cloud_url: str, api_key: str) -> tuple[bool, str]:
@@ -86,6 +89,11 @@ async def _check_api_key(cloud_url: str, api_key: str) -> tuple[bool, str]:
         if e.code == 4001:
             return False, "API key is invalid or revoked"
         return False, f"Connection closed unexpectedly (code={e.code}): {e.reason}"
+    except websockets.exceptions.InvalidStatus as e:
+        status = getattr(e, "status_code", None) or getattr(e.response, "status_code", None)
+        if status == 401 or status == 403:
+            return False, "API key is invalid or revoked"
+        return False, f"Server rejected connection (HTTP {status})"
     except (ConnectionRefusedError, OSError) as e:
         return False, f"Cannot connect to server: {e}"
     except asyncio.TimeoutError:
