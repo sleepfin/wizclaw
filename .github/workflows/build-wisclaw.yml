@@ -11,14 +11,7 @@ permissions:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            arch: x64
-          - os: windows-11-arm64
-            arch: arm64
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -37,13 +30,13 @@ jobs:
 
       - name: Rename artifact
         run: |
-          Copy-Item dist/wisclaw.exe "dist/wisclaw-windows-${{ matrix.arch }}.exe"
+          Copy-Item dist/wisclaw.exe "dist/wisclaw-windows-x64.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wisclaw-windows-${{ matrix.arch }}
-          path: dist/wisclaw-windows-${{ matrix.arch }}.exe
+          name: wisclaw-windows-x64
+          path: dist/wisclaw-windows-x64.exe
 
   release:
     needs: build
