@@ -79,6 +79,12 @@ async def _check_ws_reachable(url: str) -> tuple[bool, str]:
     except ConnectionResetError:
         # Server reset the connection (e.g. no api_key) — still reachable
         return True, ""
+    except websockets.exceptions.InvalidURI as e:
+        # Server redirected ws:// → https://, suggest using wss://
+        if url.startswith("ws://") and "https://" in str(e):
+            suggested = "wss://" + url[len("ws://"):]
+            return False, f"Server redirected to HTTPS. Use {suggested} instead"
+        return False, f"Invalid URI: {e}"
     except (ConnectionRefusedError, OSError) as e:
         return False, f"Cannot connect to {url}: [{type(e).__name__}] {e}"
     except asyncio.TimeoutError:
