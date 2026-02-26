@@ -1,14 +1,14 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Build wisclaw.exe for Windows using PyInstaller.
+    Build wizclaw.exe for Windows using PyInstaller.
 
 .DESCRIPTION
     Creates a Python virtual environment, installs dependencies, and runs
-    PyInstaller to produce a standalone wisclaw.exe binary.
+    PyInstaller to produce a standalone wizclaw.exe binary.
 
 .EXAMPLE
-    .\scripts\build-wisclaw.ps1
+    .\scripts\build-wizclaw.ps1
 #>
 
 Set-StrictMode -Version Latest
@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $BridgeDir = Join-Path $RepoRoot "bridge"
 $VenvDir = Join-Path $RepoRoot ".venv-build"
-$SpecFile = Join-Path $BridgeDir "wisclaw.spec"
+$SpecFile = Join-Path $BridgeDir "wizclaw.spec"
 
 # Detect architecture for output naming
 $Arch = switch ($env:PROCESSOR_ARCHITECTURE) {
@@ -49,7 +49,7 @@ function Write-Step {
 # ── Preflight checks ─────────────────────────────────────────────────────
 
 Write-Host ""
-Write-Host "=== wisclaw Windows builder ===" -ForegroundColor Cyan
+Write-Host "=== wizclaw Windows builder ===" -ForegroundColor Cyan
 Write-Host ""
 
 Assert-Command -Name "python" -HelpUrl "https://www.python.org/downloads/"
@@ -95,7 +95,7 @@ Write-Step "Running PyInstaller"
 
 if (-not (Test-Path $SpecFile)) {
     Write-Host "ERROR: Spec file not found at $SpecFile" -ForegroundColor Red
-    Write-Host "Ensure bridge/wisclaw.spec exists in the repo root."
+    Write-Host "Ensure bridge/wizclaw.spec exists in the repo root."
     exit 1
 }
 
@@ -108,8 +108,8 @@ try {
 
 # ── Rename output with architecture tag ──────────────────────────────────
 
-$RawExe = Join-Path $RepoRoot "dist\wisclaw.exe"
-$TaggedName = "wisclaw-windows-$Arch.exe"
+$RawExe = Join-Path $RepoRoot "dist\wizclaw.exe"
+$TaggedName = "wizclaw-windows-$Arch.exe"
 $TaggedExe = Join-Path $RepoRoot "dist\$TaggedName"
 
 if (Test-Path $RawExe) {

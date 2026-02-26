@@ -5,7 +5,7 @@ from typing import Optional
 
 import httpx
 
-logger = logging.getLogger("wisclaw.openclaw")
+logger = logging.getLogger("wizclaw.openclaw")
 
 _DEFAULT_TIMEOUT = 120.0
 

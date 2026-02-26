@@ -1,8 +1,8 @@
-"""Configuration management for wisclaw bridge daemon.
+"""Configuration management for wizclaw bridge daemon.
 
 Config lives at:
-    - Windows: %APPDATA%\\wisclaw\\config.yaml
-    - Unix:    ~/.wisclaw/config.yaml
+    - Windows: %APPDATA%\\wizclaw\\config.yaml
+    - Unix:    ~/.wizclaw/config.yaml
 """
 
 import os
@@ -17,8 +17,8 @@ def _get_config_dir() -> Path:
     if platform.system() == "Windows":
         appdata = os.environ.get("APPDATA")
         if appdata:
-            return Path(appdata) / "wisclaw"
-    return Path.home() / ".wisclaw"
+            return Path(appdata) / "wizclaw"
+    return Path.home() / ".wizclaw"
 
 
 CONFIG_DIR = _get_config_dir()

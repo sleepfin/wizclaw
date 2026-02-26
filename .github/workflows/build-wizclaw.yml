@@ -1,4 +1,4 @@
-name: Build wisclaw
+name: Build wizclaw
 
 on:
   push:
@@ -26,17 +26,17 @@ jobs:
           pip install pyinstaller certifi
 
       - name: Build with PyInstaller
-        run: pyinstaller --clean --noconfirm bridge/wisclaw.spec
+        run: pyinstaller --clean --noconfirm bridge/wizclaw.spec
 
       - name: Rename artifact
         run: |
-          Copy-Item dist/wisclaw.exe "dist/wisclaw-windows-x64.exe"
+          Copy-Item dist/wizclaw.exe "dist/wizclaw-windows-x64.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wisclaw-windows-x64
-          path: dist/wisclaw-windows-x64.exe
+          name: wizclaw-windows-x64
+          path: dist/wizclaw-windows-x64.exe
 
   release:
     needs: build
@@ -51,5 +51,5 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/wisclaw-windows-*.exe
+          files: artifacts/wizclaw-windows-*.exe
           generate_release_notes: true

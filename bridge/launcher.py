@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-logger = logging.getLogger("wisclaw.launcher")
+logger = logging.getLogger("wizclaw.launcher")
 
 _STDERR_LOG = Path(tempfile.gettempdir()) / "openclaw-stderr.log"
 

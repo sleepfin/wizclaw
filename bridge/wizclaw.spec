@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec for building wisclaw.exe."""
+"""PyInstaller spec for building wizclaw.exe."""
 
 import os
 
@@ -13,7 +13,7 @@ repo_root = os.path.dirname(spec_dir)
 certifi_dir = os.path.dirname(certifi.where())
 
 a = Analysis(
-    [os.path.join(spec_dir, "wisclaw.py")],
+    [os.path.join(spec_dir, "wizclaw.py")],
     pathex=[repo_root],
     binaries=[],
     datas=[(certifi_dir, "certifi")],
@@ -58,7 +58,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name="wisclaw",
+    name="wizclaw",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

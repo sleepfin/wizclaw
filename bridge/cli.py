@@ -1,9 +1,9 @@
-"""CLI entry points for wisclaw bridge daemon.
+"""CLI entry points for wizclaw bridge daemon.
 
 Single-command experience:
-    wisclaw           — auto-config (first run) + start OpenClaw + connect
-    wisclaw config    — re-run the configuration wizard
-    wisclaw version   — print version and exit
+    wizclaw           — auto-config (first run) + start OpenClaw + connect
+    wizclaw config    — re-run the configuration wizard
+    wizclaw version   — print version and exit
 """
 
 from __future__ import annotations
@@ -187,10 +187,10 @@ def _run_config_wizard(force: bool = False) -> dict:
 
     if not force and cfg.get("api_key"):
         print(f"Config already exists at {get_config_path()}")
-        print("Use 'wisclaw config --force' to overwrite.")
+        print("Use 'wizclaw config --force' to overwrite.")
         return cfg
 
-    print("=== wisclaw setup ===\n")
+    print("=== wizclaw setup ===\n")
 
     # --- Cloud WebSocket URL (format + reachability) ---
     default_cloud = cfg.get("cloud_url", _DEFAULTS["cloud_url"])
@@ -284,7 +284,7 @@ def cmd_config(args):
 
 def cmd_version(_args):
     """Print version and exit."""
-    print(f"wisclaw {__version__}")
+    print(f"wizclaw {__version__}")
 
 
 def cmd_run(_args):
@@ -325,7 +325,7 @@ def cmd_run(_args):
             print("Bridge will keep retrying after connecting to cloud.\n")
 
     # Step 3: connect to cloud
-    print(f"Starting wisclaw bridge daemon...")
+    print(f"Starting wizclaw bridge daemon...")
     print(f"  Cloud:    {cfg['cloud_url']}")
     print(f"  OpenClaw: {cfg['openclaw_url']}")
     print(f"  Config:   {get_config_path()}")
@@ -350,12 +350,12 @@ def main():
     _setup_logging()
 
     parser = argparse.ArgumentParser(
-        prog="wisclaw",
+        prog="wizclaw",
         description="Bridge daemon connecting local OpenClaw to the cloud",
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    # wisclaw config [--force]
+    # wizclaw config [--force]
     config_parser = subparsers.add_parser(
         "config", help="Re-run the configuration wizard",
     )
@@ -363,7 +363,7 @@ def main():
         "--force", action="store_true", help="Overwrite existing config",
     )
 
-    # wisclaw version
+    # wizclaw version
     subparsers.add_parser("version", help="Show version")
 
     args = parser.parse_args()

@@ -12,7 +12,7 @@ import websockets
 from bridge import __version__
 from bridge.openclaw import OpenClawClient
 
-logger = logging.getLogger("wisclaw.client")
+logger = logging.getLogger("wizclaw.client")
 
 
 class BridgeClient:

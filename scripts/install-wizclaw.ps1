@@ -1,15 +1,15 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    One-line installer for wisclaw on Windows.
+    One-line installer for wizclaw on Windows.
 
 .DESCRIPTION
-    Downloads the latest wisclaw.exe from GitHub Releases and installs it
+    Downloads the latest wizclaw.exe from GitHub Releases and installs it
     to %USERPROFILE%\.local\bin, adding that directory to the user PATH
     if it is not already present.
 
 .EXAMPLE
-    iwr -useb https://raw.githubusercontent.com/sleepfin/wisclaw/main/scripts/install-wisclaw.ps1 | iex
+    iwr -useb https://raw.githubusercontent.com/sleepfin/wizclaw/main/scripts/install-wizclaw.ps1 | iex
 #>
 
 Set-StrictMode -Version Latest
@@ -17,8 +17,8 @@ $ErrorActionPreference = "Stop"
 
 # ── Configuration ─────────────────────────────────────────────────────────
 $RepoOwner  = "sleepfin"
-$RepoName   = "wisclaw"
-$BinaryName = "wisclaw.exe"
+$RepoName   = "wizclaw"
+$BinaryName = "wizclaw.exe"
 $InstallDir = Join-Path $env:USERPROFILE ".local\bin"
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -40,14 +40,14 @@ function Get-LatestReleaseUrl {
 
     $apiUrl = "https://api.github.com/repos/$RepoOwner/$RepoName/releases/latest"
     try {
-        $release = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "wisclaw-installer" }
+        $release = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "wizclaw-installer" }
     }
     catch {
         Write-Host "Failed to query GitHub releases: $_" -ForegroundColor Red
         exit 1
     }
 
-    $pattern = "wisclaw-windows-$Arch"
+    $pattern = "wizclaw-windows-$Arch"
     $asset = $release.assets | Where-Object { $_.name -like "*$pattern*" } | Select-Object -First 1
 
     if (-not $asset) {
@@ -81,7 +81,7 @@ function Add-ToUserPath {
 
     $newPath = "$currentPath;$Dir"
     [Environment]::SetEnvironmentVariable("PATH", $newPath, "User")
-    # Also update the current session so the user can use wisclaw immediately
+    # Also update the current session so the user can use wizclaw immediately
     $env:PATH = "$env:PATH;$Dir"
     Write-Host "Added $Dir to your user PATH."
 }
@@ -89,7 +89,7 @@ function Add-ToUserPath {
 # ── Main ──────────────────────────────────────────────────────────────────
 
 Write-Host ""
-Write-Host "=== wisclaw installer ===" -ForegroundColor Cyan
+Write-Host "=== wizclaw installer ===" -ForegroundColor Cyan
 Write-Host ""
 
 $arch = Get-Architecture
@@ -117,9 +117,9 @@ Write-Host ""
 Write-Host "Installation complete!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Usage:"
-Write-Host "  wisclaw            # first run will guide you through setup"
-Write-Host "  wisclaw config     # re-configure"
-Write-Host "  wisclaw version    # show version"
+Write-Host "  wizclaw            # first run will guide you through setup"
+Write-Host "  wizclaw config     # re-configure"
+Write-Host "  wizclaw version    # show version"
 Write-Host ""
 Write-Host "You may need to restart your terminal for PATH changes to take effect."
 Write-Host ""
