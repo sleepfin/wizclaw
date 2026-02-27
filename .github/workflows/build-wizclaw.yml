@@ -23,6 +23,10 @@ jobs:
             arch: arm64
             artifact: wizclaw-macos-arm64
             binary: dist/wizclaw
+          - os: macos-15-intel
+            arch: x64
+            artifact: wizclaw-macos-x64
+            binary: dist/wizclaw
           - os: ubuntu-latest
             arch: x64
             artifact: wizclaw-linux-x64

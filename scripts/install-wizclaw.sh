@@ -46,19 +46,6 @@ detect_platform() {
             ;;
     esac
 
-    # Intel Mac: no pre-built binary, guide user to build from source
-    if [ "$os" = "macos" ] && [ "$arch" = "x64" ]; then
-        err "Pre-built binaries for Intel Mac are not available."
-        echo ""
-        echo "Please build from source instead:"
-        echo "  git clone https://github.com/sleepfin/wizclaw.git"
-        echo "  cd wizclaw"
-        echo "  ./scripts/build-wizclaw.sh"
-        echo ""
-        echo "The built binary will be at dist/wizclaw-macos-x64"
-        exit 1
-    fi
-
     echo "${os}-${arch}"
 }
 
