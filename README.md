@@ -12,18 +12,18 @@ Bridge daemon，将本地 OpenClaw agent 连接到云端 WebSocket 服务。
 curl -fsSL https://raw.githubusercontent.com/sleepfin/wizclaw/main/scripts/install-wizclaw.sh | bash
 ```
 
-脚本会自动检测架构（Intel x64 / Apple Silicon arm64），下载对应的最新 release 到 `~/.local/bin` 并添加到 PATH。
+脚本会自动下载 Apple Silicon (arm64) 版本到 `~/.local/bin` 并添加到 PATH。
 
 > **Gatekeeper 提示**：安装脚本已自动处理。如手动下载，需运行 `xattr -d com.apple.quarantine wizclaw` 解除隔离。
 
 ### 手动安装
 
-1. 前往 [Releases](https://github.com/sleepfin/wizclaw/releases) 下载对应架构的文件：
-   - Apple Silicon (M1/M2/M3/M4): `wizclaw-macos-arm64`
-   - Intel Mac: `wizclaw-macos-x64`
+1. 前往 [Releases](https://github.com/sleepfin/wizclaw/releases) 下载 `wizclaw-macos-arm64`
 2. 重命名为 `wizclaw`，放到 PATH 中任意目录
 3. 赋予执行权限：`chmod +x wizclaw`
 4. 解除 Gatekeeper 隔离：`xattr -d com.apple.quarantine wizclaw`
+
+> **Intel Mac 用户**：GitHub 已下线 Intel macOS 构建环境，Release 中不提供 x64 二进制。请使用下方"本地构建"方式在本机编译。
 
 ### 本地构建
 
@@ -33,7 +33,31 @@ curl -fsSL https://raw.githubusercontent.com/sleepfin/wizclaw/main/scripts/insta
 ./scripts/build-wizclaw.sh
 ```
 
-产物在 `dist/wizclaw-macos-arm64` 或 `dist/wizclaw-macos-x64`。
+产物在 `dist/wizclaw-macos-arm64` 或 `dist/wizclaw-macos-x64`（取决于你的机器架构）。
+
+## Linux 安装
+
+### 一键安装（推荐）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sleepfin/wizclaw/main/scripts/install-wizclaw.sh | bash
+```
+
+脚本会自动检测架构，下载最新 release 到 `~/.local/bin` 并添加到 PATH。
+
+### 手动安装
+
+1. 前往 [Releases](https://github.com/sleepfin/wizclaw/releases) 下载 `wizclaw-linux-x64`
+2. 重命名为 `wizclaw`，放到 PATH 中任意目录
+3. 赋予执行权限：`chmod +x wizclaw`
+
+### 本地构建
+
+需要 Python 3.12+：
+
+```bash
+./scripts/build-wizclaw.sh
+```
 
 ## Windows 安装
 
@@ -101,9 +125,9 @@ git push origin main --tags
 
 tag 必须以 `v` 开头（如 `v0.2.0`），推送后 GitHub Actions 会自动：
 
-1. 在 `windows-latest` runner 上构建 `wizclaw-windows-x64.exe`
-2. 在 `macos-13` runner (Intel) 上构建 `wizclaw-macos-x64`
-3. 在 `macos-latest` runner (Apple Silicon) 上构建 `wizclaw-macos-arm64`
+1. 在 `windows-latest` 上构建 `wizclaw-windows-x64.exe`
+2. 在 `macos-latest` (Apple Silicon) 上构建 `wizclaw-macos-arm64`
+3. 在 `ubuntu-latest` 上构建 `wizclaw-linux-x64`
 4. 创建 GitHub Release，附带所有平台的二进制文件
 
 ### 手动触发构建（不发 Release）

@@ -19,13 +19,13 @@ jobs:
             arch: x64
             artifact: wizclaw-windows-x64.exe
             binary: dist/wizclaw.exe
-          - os: macos-13
-            arch: x64
-            artifact: wizclaw-macos-x64
-            binary: dist/wizclaw
           - os: macos-latest
             arch: arm64
             artifact: wizclaw-macos-arm64
+            binary: dist/wizclaw
+          - os: ubuntu-latest
+            arch: x64
+            artifact: wizclaw-linux-x64
             binary: dist/wizclaw
 
     runs-on: ${{ matrix.os }}
@@ -73,4 +73,5 @@ jobs:
           files: |
             artifacts/wizclaw-windows-*.exe
             artifacts/wizclaw-macos-*
+            artifacts/wizclaw-linux-*
           generate_release_notes: true
