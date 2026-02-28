@@ -293,9 +293,61 @@ def cmd_version(_args):
     print(f"wizclaw {__version__}")
 
 
+def _ensure_chat_completions_enabled():
+    """Check OpenClaw config and enable chatCompletions endpoint if needed."""
+    import json
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    config_path = Path.home() / ".openclaw" / "openclaw.json"
+    if not config_path.exists():
+        return
+
+    logger = logging.getLogger("wizclaw.cli")
+    try:
+        oc_cfg = json.loads(config_path.read_text(encoding="utf-8"))
+        chat_enabled = (oc_cfg.get("gateway", {})
+                        .get("http", {})
+                        .get("endpoints", {})
+                        .get("chatCompletions", {})
+                        .get("enabled", False))
+        if chat_enabled:
+            return
+
+        exe = shutil.which("openclaw")
+        if exe is None:
+            logger.warning("openclaw not found on PATH; cannot auto-enable chatCompletions")
+            return
+
+        logger.info("Enabling chatCompletions endpoint in OpenClaw config...")
+        subprocess.run(
+            [exe, "config", "set",
+             "gateway.http.endpoints.chatCompletions.enabled", "true"],
+            check=True, capture_output=True, text=True,
+        )
+        logger.info("chatCompletions endpoint enabled")
+    except Exception as e:
+        logger.warning("Failed to check/enable chatCompletions: %s", e)
+
+
 def cmd_run(_args):
     """Default command: auto-config + ensure OpenClaw + connect to cloud."""
     cfg = load_config()
+
+    # Step 0a: Auto-enable chatCompletions endpoint if disabled
+    _ensure_chat_completions_enabled()
+
+    # Step 0b: Auto-detect OpenClaw token if not configured
+    if not cfg.get("openclaw_token"):
+        detected = detect_openclaw_config()
+        if detected.get("token"):
+            cfg["openclaw_token"] = detected["token"]
+            logging.getLogger("wizclaw.cli").info(
+                "Auto-detected OpenClaw token from ~/.openclaw/openclaw.json"
+            )
+        if detected.get("url") and cfg.get("openclaw_url") == _DEFAULTS["openclaw_url"]:
+            cfg["openclaw_url"] = detected["url"]
 
     # Step 1: first-run configuration wizard if no API key
     if not cfg.get("api_key"):
